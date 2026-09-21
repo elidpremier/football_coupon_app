@@ -1,0 +1,38 @@
+{
+    "errors": [],
+    "results": 1,
+    "paging": {"total": 1, "page": 1, "limit": 100},
+    "response": [
+        {
+            "fixture": {
+                "id": 1101,
+                "date": "2026-09-20T18:00:00+00:00",
+                "status": {"short": "NS"},
+                "home": {"id": 33, "name": "Arsenal"},
+                "away": {"id": 46, "name": "Chelsea"}
+            },
+            "home": {
+                "injured": [
+                    {
+                        "player": {"id": 1001, "name": "M. Silva"},
+                        "reason": "Injury",
+                        "details": "Knee"
+                    }
+                ],
+                "suspected": [],
+                "suspended": []
+            },
+            "away": {
+                "injured": [],
+                "suspected": [
+                    {
+                        "player": {"id": 1002, "name": "J. Turner"},
+                        "reason": "Doubt",
+                        "details": "Hamstring"
+                    }
+                ],
+                "suspended": []
+            }
+        }
+    ]
+}

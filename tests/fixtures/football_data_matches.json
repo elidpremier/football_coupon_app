@@ -1,0 +1,28 @@
+{
+  "response": {
+    "matches": [
+      {
+        "id": 2101,
+        "utcDate": "2026-09-20T18:00:00Z",
+        "status": "SCHEDULED",
+        "stage": "MATCHDAY:8",
+        "competition": {"code": "PL", "name": "Premier League"},
+        "homeTeam": {"id": 33, "name": "Arsenal FC"},
+        "awayTeam": {"id": 46, "name": "Chelsea"},
+        "venue": "Emirates Stadium",
+        "odds": {"win": {"home": 2.12, "draw": 3.45, "away": 3.55}}
+      },
+      {
+        "id": 2102,
+        "utcDate": "2026-09-20T20:00:00Z",
+        "status": "SCHEDULED",
+        "stage": "MATCHDAY:8",
+        "competition": {"code": "PL", "name": "Premier League"},
+        "homeTeam": {"id": 39, "name": "Manchester United"},
+        "awayTeam": {"id": 49, "name": "Brighton & Hove Albion"},
+        "venue": "Old Trafford",
+        "odds": {"win": {"home": 1.92, "draw": 3.85, "away": 4.10}}
+      }
+    ]
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "response": [
+    {
+      "type": "TOTAL",
+      "league": {"competition": "PL", "country": "England"},
+      "standings": [
+        {
+          "stage": "TOTAL",
+          "type": "TOTAL",
+          "team": {"id": 33, "name": "Arsenal FC", "shortName": "ARS"},
+          "ranking": 1,
+          "form": "WWDWW",
+          "played": 8, "win": 6, "draw": 1, "lose": 1, "points": 19,
+          "goalsFor": 18, "goalsAgainst": 7
+        },
+        {
+          "stage": "TOTAL",
+          "type": "TOTAL",
+          "team": {"id": 46, "name": "Chelsea", "shortName": "CHE"},
+          "ranking": 2,
+          "form": "DWLWW",
+          "played": 8, "win": 4, "draw": 2, "lose": 2, "points": 14,
+          "goalsFor": 14, "goalsAgainst": 9
+        },
+        {
+          "stage": "TOTAL",
+          "type": "TOTAL",
+          "team": {"id": 39, "name": "Manchester United", "shortName": "MUN"},
+          "ranking": 3,
+          "form": "WLLWW",
+          "played": 8, "win": 4, "draw": 1, "lose": 3, "points": 13,
+          "goalsFor": 12, "goalsAgainst": 11
+        },
+        {
+          "stage": "TOTAL",
+          "type": "TOTAL",
+          "team": {"id": 49, "name": "Brighton & Hove Albion", "shortName": "BHA"},
+          "ranking": 4,
+          "form": "WLLDW",
+          "played": 8, "win": 2, "draw": 2, "lose": 4, "points": 8,
+          "goalsFor": 10, "goalsAgainst": 13
+        }
+      ]
+    }
+  ]
+}

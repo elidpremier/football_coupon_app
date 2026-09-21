@@ -1,0 +1,7 @@
+streamlit>=1.36
+requests>=2.31
+Pillow>=10.3
+PyYAML>=6.0
+python-dotenv>=1.0
+pytest>=8.0
+pytest-cov>=5.0

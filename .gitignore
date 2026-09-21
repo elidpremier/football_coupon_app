@@ -1,0 +1,21 @@
+# Secrets — jamais versionnés
+.env
+
+# Base de données et sauvegardes locales
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Sorties locales
+out/
+*.log

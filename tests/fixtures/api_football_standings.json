@@ -1,0 +1,16 @@
+{
+  "response": [
+    {
+      "league": {"id": 39, "name": "Premier League", "season": 2026},
+      "country": "England",
+      "groups": [
+        [
+          {"rank": 1, "team": {"id": 33, "name": "Arsenal FC"}, "played": 8, "win": 6, "draw": 1, "lose": 1, "goals": {"for": 18, "against": 7}, "points": 19},
+          {"rank": 2, "team": {"id": 46, "name": "Chelsea"}, "played": 8, "win": 4, "draw": 2, "lose": 2, "goals": {"for": 14, "against": 9}, "points": 14},
+          {"rank": 3, "team": {"id": 39, "name": "Manchester United"}, "played": 8, "win": 4, "draw": 1, "lose": 3, "goals": {"for": 12, "against": 11}, "points": 13},
+          {"rank": 4, "team": {"id": 49, "name": "Brighton & Hove Albion"}, "played": 8, "win": 2, "draw": 2, "lose": 4, "goals": {"for": 10, "against": 13}, "points": 8}
+        ]
+      ]
+    }
+  ]
+}

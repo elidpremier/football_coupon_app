@@ -1,0 +1,62 @@
+{
+  "response": [
+    {
+      "fixture": {"id": 1101},
+      "bookmakers": [
+        {
+          "id": 337,
+          "bookmaker": "Betway",
+          "lastUpdateTime": "2026-09-20T11:00:00+00:00",
+          "markets": [
+            {
+              "id": 1,
+              "name": "1X2",
+              "bookmakers": [
+                {"id": 3371, "name": "1", "123": [2.10], "lastUpdateTime": "2026-09-20T11:00:00+00:00"},
+                {"id": 3372, "name": "X", "123": [3.40], "lastUpdateTime": "2026-09-20T11:00:00+00:00"},
+                {"id": 3373, "name": "2", "123": [3.60], "lastUpdateTime": "2026-09-20T11:00:00+00:00"}
+              ]
+            },
+            {
+              "id": 9,
+              "name": "Over/Under 2.5",
+              "bookmakers": [
+                {"id": 901, "name": "Over", "Over/Under": [1.95], "lastUpdateTime": "2026-09-20T11:00:00+00:00"},
+                {"id": 902, "name": "Under", "Over/Under": [1.85], "lastUpdateTime": "2026-09-20T11:00:00+00:00"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fixture": {"id": 1102},
+      "bookmakers": [
+        {
+          "id": 338,
+          "bookmaker": "Pinnacle",
+          "lastUpdateTime": "2026-09-20T10:30:00+00:00",
+          "markets": [
+            {
+              "id": 1,
+              "name": "1X2",
+              "bookmakers": [
+                {"id": 3381, "name": "1", "123": [1.90], "lastUpdateTime": "2026-09-20T10:30:00+00:00"},
+                {"id": 3382, "name": "X", "123": [3.90], "lastUpdateTime": "2026-09-20T10:30:00+00:00"},
+                {"id": 3383, "name": "2", "123": [4.20], "lastUpdateTime": "2026-09-20T10:30:00+00:00"}
+              ]
+            },
+            {
+              "id": 9,
+              "name": "Over/Under 2.5",
+              "bookmakers": [
+                {"id": 903, "name": "Over", "Over/Under": [1.75], "lastUpdateTime": "2026-09-20T10:30:00+00:00"},
+                {"id": 904, "name": "Under", "Over/Under": [2.10], "lastUpdateTime": "2026-09-20T10:30:00+00:00"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

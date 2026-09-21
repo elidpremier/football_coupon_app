@@ -1,0 +1,16 @@
+{
+  "response": [
+    {
+      "fixture": {"id": 1101, "date": "2026-09-20T18:00:00+00:00", "status": {"short": "NS"}},
+      "league": {"id": 39, "name": "Premier League"},
+      "teams": {"home": {"id": 33, "name": "Arsenal FC"}, "away": {"id": 46, "name": "Chelsea"}},
+      "venue": {"id": 1, "name": "Emirates Stadium"}
+    },
+    {
+      "fixture": {"id": 1102, "date": "2026-09-20T20:00:00+00:00", "status": {"short": "NS"}},
+      "league": {"id": 39, "name": "Premier League"},
+      "teams": {"home": {"id": 39, "name": "Manchester United"}, "away": {"id": 49, "name": "Brighton & Hove Albion"}},
+      "venue": {"id": 2, "name": "Old Trafford"}
+    }
+  ]
+}

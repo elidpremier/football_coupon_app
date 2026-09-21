@@ -1,0 +1,22 @@
+# ============================================================
+# Football Coupon App — exemple de crontab
+# ------------------------------------------------------------
+# À installer : crontab -e  (adapter CHEMIN et le fuseau du serveur ;
+# le cron local utilise le fuseau système — les heures ci-dessous sont
+# écrites pour un serveur en UTC).
+#
+# CHEMIN = /chemin/absolu/vers/football_coupon_app
+#
+# Rappels du plan :
+#  - morning : 8 h 00  → collecte de la journée + analyse + coupons
+#  - refresh : 14 h / 15 h → 2-3 h avant les premiers coups d'envoi
+#    (couvre la fenêtre 16 h–21 h UTC du mode démo ; à caler sur la
+#    compétition réelle)
+#  - settle  : 23 h 30 → après la fin des matchs (21 h UTC + marge)
+# ============================================================
+
+# Minute Heure jour mois semaine commande
+0  8    * * * cd CHEMIN && .venv/bin/python -m football.scheduler morning >> data/cron.log 2>&1
+0  14   * * * cd CHEMIN && .venv/bin/python -m football.scheduler refresh >> data/cron.log 2>&1
+0  15   * * * cd CHEMIN && .venv/bin/python -m football.scheduler refresh >> data/cron.log 2>&1
+30 23   * * * cd CHEMIN && .venv/bin/python -m football.scheduler settle  >> data/cron.log 2>&1
