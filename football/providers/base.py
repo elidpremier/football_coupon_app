@@ -133,9 +133,11 @@ def competition_to_provider_code(provider: str, competition_slug: str) -> str:
             # === Amériques ===
             "brasileirao": 71,         # Brésil Série A
             "mls": 253,                # Major League Soccer (USA/Canada)
-            # === Afrique ===
+            # === Afrique & International ===
             "afcon": 6,                # Coupe d'Afrique des Nations
             "can_qualif": 30,          # CAN Qualifications
+            "uefa_nations_league": 5,  # UEFA Nations League
+            "wc_qualif": 32,           # World Cup Qualification
         },
         "football_data": {
             # 12 compétitions disponibles sur l'offre gratuite

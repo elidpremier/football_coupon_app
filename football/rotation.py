@@ -42,6 +42,8 @@ PRESTIGE_SCORES: dict[str, int] = {
     "segunda_division": 38,
     "afcon": 70,
     "can_qualif": 55,
+    "uefa_nations_league": 75,
+    "wc_qualif": 75,
     "coppa_italia": 60,
     "premier_league_cup": 50,
 }
@@ -71,6 +73,8 @@ ESTIMATED_COST: dict[str, int] = {
     "premier_league_cup": 4,
     "afcon": 5,
     "can_qualif": 4,
+    "uefa_nations_league": 6,
+    "wc_qualif": 6,
 }
 
 
@@ -114,7 +118,7 @@ class CompetitionStatus:
             score += 100.0
 
         # Affinité par jour de la semaine
-        midweek_comps = {"champions_league", "europe_league", "conference_league", "coppa_italia", "premier_league_cup"}
+        midweek_comps = {"champions_league", "europe_league", "conference_league", "coppa_italia", "premier_league_cup", "uefa_nations_league", "wc_qualif"}
         if self.slug in midweek_comps:
             if weekday in (1, 2, 3):  # Tue, Wed, Thu
                 score += 40.0

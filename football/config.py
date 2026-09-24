@@ -40,9 +40,11 @@ KNOWN_COMPETITIONS = {
     # === Amériques ===
     "brasileirao",         # Brésil Série A
     "mls",                 # Major League Soccer
-    # === Afrique ===
+    # === Afrique & International ===
     "afcon",               # Coupe d'Afrique des Nations
     "can_qualif",          # CAN Qualifications
+    "uefa_nations_league", # Ligue des Nations de l'UEFA
+    "wc_qualif",           # Qualifications Coupe du Monde
 }
 # Compétitions disponibles via les DEUX fournisseurs (contrôle croisé possible).
 # Utilisé pour valider les fallback_competitions et le pool de rotation.
@@ -59,6 +61,7 @@ API_FOOTBALL_ONLY_COMPETITIONS = {
     "conference_league", "coppa_italia", "premier_league_cup",
     "ligue_2", "serie_b", "segunda_division",
     "mls", "afcon", "can_qualif",
+    "uefa_nations_league", "wc_qualif",
 }
 
 KNOWN_MARKETS = {"match_winner", "double_chance", "over_under_2_5"}
