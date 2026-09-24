@@ -101,29 +101,57 @@ class BaseProvider:
 
 
 def competition_to_provider_code(provider: str, competition_slug: str) -> str:
-    """Cartographie compétition interne → code fournisseur."""
+    """Cartographie compétition interne → code fournisseur.
+
+    API-Football donne accès à 1 200+ compétitions sur l'offre gratuite.
+    football-data.org couvre 12 compétitions sur l'offre gratuite.
+    Les compétitions marquées *(api_football only)* ne sont pas disponibles
+    via football-data.org (contrôle croisé impossible : qualité réduite).
+    """
     table = {
         "api_football": {
+            # === Ligues européennes majeures ===
             "premier_league": 39,
             "la_liga": 140,
             "serie_a": 135,
             "bundesliga": 132,
             "ligue_1": 61,
             "eredivisie": 107,
+            "primeira_liga": 94,       # Portugal
+            "championship": 40,        # Angleterre D2
+            # === Coupes européennes ===
             "champions_league": 2,
             "europe_league": 14,
+            "conference_league": 848,  # UEFA Conference League
+            # === Coupes nationales ===
             "coppa_italia": 79,
             "premier_league_cup": 131,
+            # === Divisions 2 européennes ===
+            "ligue_2": 62,             # France D2
+            "serie_b": 136,            # Italie D2
+            "segunda_division": 141,   # Espagne D2
+            # === Amériques ===
+            "brasileirao": 71,         # Brésil Série A
+            "mls": 253,                # Major League Soccer (USA/Canada)
+            # === Afrique ===
+            "afcon": 6,                # Coupe d'Afrique des Nations
+            "can_qualif": 30,          # CAN Qualifications
         },
         "football_data": {
+            # 12 compétitions disponibles sur l'offre gratuite
             "premier_league": "PL",
             "la_liga": "PD",
             "serie_a": "SA",
             "bundesliga": "BL1",
-            "ligue_1": "D1",
-            "eredivisie": "ED1",
+            "ligue_1": "FL1",
+            "eredivisie": "DED",
+            "primeira_liga": "PPL",    # Portugal — nouvellement mappé
+            "championship": "ELC",    # Angleterre D2 — nouvellement mappé
             "champions_league": "CL",
             "europe_league": "EL",
+            "brasileirao": "BSA",     # Brésil — nouvellement mappé
+            # conference_league, ligue_2, serie_b, segunda_division,
+            # mls, afcon, can_qualif : non couverts par football-data.org
         },
     }
     try:

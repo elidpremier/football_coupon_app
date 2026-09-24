@@ -25,7 +25,10 @@ BASE_URL = "https://v3.football.api-sports.io"
 LEAGUE_NAMES = {
     39: "premier_league", 140: "la_liga", 135: "serie_a", 132: "bundesliga",
     61: "ligue_1", 107: "eredivisie", 2: "champions_league", 14: "europe_league",
-    79: "coppa_italia", 131: "premier_league_cup",
+    79: "coppa_italia", 131: "premier_league_cup", 94: "primeira_liga",
+    40: "championship", 848: "conference_league", 62: "ligue_2",
+    136: "serie_b", 141: "segunda_division", 71: "brasileirao",
+    253: "mls", 6: "afcon", 30: "can_qualif",
 }
 
 

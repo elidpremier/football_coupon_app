@@ -1,41 +1,52 @@
-# ============================================================
-# Configuration de l'application de coupons football
-# Toute modification est versionnée : chaque run conserve la
-# version du fichier (hash) utilisée dans les tables analyses.
-# ============================================================
-
 project:
-  timezone: Africa/Ouagadougou   # fuseau d'affichage ; tout est stocké en UTC
-  mode: pilot                     # pilot | public
-  require_human_approval: true    # ne jamais désactiver en MVP
+  timezone: Africa/Ouagadougou
+  mode: pilot
+  require_human_approval: true
 
-# Compétitions suivies (1 à 3). Ce trio reste dans le budget quotidien
-# d'API-Football, même un jour chargé.
 competitions:
-  - premier_league
-  - la_liga
-  - serie_a
+- premier_league
+- la_liga
+- serie_a
 
-# Repli journalier : interrogé uniquement si aucun match n'est trouvé dans
-# les compétitions prioritaires. Toutes sont couvertes par les deux API ; les
-# matchs effectivement trouvés sont alors collectés et analysés.
 fallback_competitions:
-  - bundesliga
-  - ligue_1
-  - eredivisie
-  - champions_league
-  - europe_league
+- bundesliga
+- ligue_1
+- eredivisie
+- champions_league
+- europe_league
 
-# Marchés autorisés (fixe, élargissement ultérieur par décision documentée)
+# ============================================================
+# ROTATION AUTOMATIQUE DES COMPÉTITIONS
+# L'application sélectionne chaque jour les compétitions
+# à analyser selon les matchs imminents et le budget API.
+# ============================================================
+rotation:
+  enabled: true
+  pool:
+    - primeira_liga
+    - championship
+    - conference_league
+    - ligue_2
+    - serie_b
+    - segunda_division
+    - brasileirao
+    - mls
+    - afcon
+    - can_qualif
+    - coppa_italia
+    - premier_league_cup
+  max_active: 8           # max de compétitions simultanées (forcées + rotation)
+  min_coverage_days: 2    # réanalyse une compétition si absente depuis >2 jours
+  budget_safety_pct: 80   # stoppe si budget API utilisé > 80%
+
 markets:
-  - match_winner        # 1X2
-  - double_chance       # 1X / X2 / 12
-  - over_under_2_5      # total de buts
+- match_winner
+- double_chance
+- over_under_2_5
 
 providers:
   primary: api_football
   secondary: football_data
-  # Budget logiciel API-Football : 85 < 100 (marge de sécurité)
   api_football_daily_budget: 85
   api_football_per_minute: null
   football_data_daily_budget: 200
@@ -44,30 +55,27 @@ providers:
   max_retries: 3
 
 quality:
-  eligible_threshold: 80
-  watch_threshold: 65
-  max_odds_age_hours: 6
+  eligible_threshold: 80.0
+  watch_threshold: 65.0
+  max_odds_age_hours: 6.0
   kickoff_tolerance_minutes: 5
   min_selection_probability: 0.45
-  # Poids du score de qualité (somme 1.0)
   weights:
     freshness: 0.35
-    source_agreement: 0.20
+    source_agreement: 0.2
     odds_coverage: 0.15
-    team_data_coverage: 0.20
-    availability_confidence: 0.10
+    team_data_coverage: 0.2
+    availability_confidence: 0.1
   contradiction_penalty: 25
 
 selection:
-  # Grille de score d'éligibilité (somme 100)
   weight_data_quality: 35
   weight_source_agreement: 20
   weight_odds_stability: 15
   weight_probability: 15
   weight_explanation: 15
-  # Complétude de l'explication : 1.0 si IA validée, 0.90 en gabarit
   explanation_score_ai_validated: 1.0
-  explanation_score_template: 0.90
+  explanation_score_template: 0.9
 
 coupons:
   pilot_max_selections: 2
@@ -75,32 +83,26 @@ coupons:
   max_published_per_day: 1
   prohibit_same_fixture: true
   prohibit_same_team: true
-  # Two matches same competition with closer kickoff are considered
-  # "same context" and cannot be combined.
   same_context_minutes: 90
   max_candidates_displayed: 3
 
 ai:
-  mode: "gemini_free"       # off | gemini_free | ollama_local
+  mode: gemini_free
   require_valid_source_refs: true
   enable_web_search: false
-  prompt_version: "v1"
+  prompt_version: v1
 
 publishing:
-  # Canal de TEST uniquement pendant le pilote
   telegram_test_channel_env: TELEGRAM_TEST_CHANNEL_ID
   max_caption_chars: 1024
   max_png_bytes: 10000000
-  responsible_gambling_notice: "Estimation probabiliste — aucun résultat garanti. Jouez de manière responsable."
+  responsible_gambling_notice: Estimation probabiliste — aucun résultat garanti. Jouez
+    de manière responsable.
 
-# Probabilités : la référence de marché (cote normalisée) est le modèle
-# de départ obligatoire. "poisson" n'est autorisé qu'après validation
-# chronologique (phases 5/6 du plan).
 probabilities:
-  source: market            # market | poisson
+  source: market
   model_version: market_normalized_v1
   poisson_max_goals: 10
 
 scheduler:
-  # Moments relatifs (minutes) — le cron local déclenche les jobs
   refresh_window_minutes: 180

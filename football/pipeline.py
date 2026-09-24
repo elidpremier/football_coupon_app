@@ -131,7 +131,11 @@ class Pipeline:
                 prefetched_fixtures[competition] = fixtures
                 selected_competitions.append(competition)
 
-        for competition in self.config.competitions:
+        from .rotation import build_rotator
+        rotator = build_rotator(self.config, self.db)
+        target_competitions = rotator.get_active_competitions(day)
+
+        for competition in target_competitions:
             fetch_primary_fixtures(competition)
             if quota_hit:
                 break

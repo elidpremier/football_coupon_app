@@ -193,12 +193,7 @@ class DemoProvider(BaseProvider):
         ]
 
     def fetch_results(self, day: date, competition_slug: str) -> list[PResult]:
-        """Résultats de la journée `day` :
-        - journée future → aucun résultat ;
-        - journée ancrée (collecte « à venir ») → disponibles après 23 h 50
-          UTC de cette journée (la journée est alors terminée) ;
-        - journées antérieures → résultats fixes.
-        Le test peut faire avancer `provider._now` pour simuler le temps."""
+        """Résultats de la journée `day`."""
         if competition_slug != COMPETITION:
             return []
         if day > self._anchor_day:

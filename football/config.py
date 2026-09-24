@@ -17,23 +17,48 @@ from dotenv import load_dotenv
 from .utils import sha256_text
 
 KNOWN_COMPETITIONS = {
+    # === Ligues européennes majeures ===
     "premier_league",
     "la_liga",
     "serie_a",
     "bundesliga",
     "ligue_1",
     "eredivisie",
+    "primeira_liga",       # Portugal
+    "championship",        # Angleterre D2
+    # === Coupes européennes ===
     "champions_league",
     "europe_league",
+    "conference_league",   # UEFA Conference League
+    # === Coupes nationales ===
     "coppa_italia",
     "premier_league_cup",
+    # === Divisions 2 européennes ===
+    "ligue_2",             # France D2
+    "serie_b",             # Italie D2
+    "segunda_division",    # Espagne D2
+    # === Amériques ===
+    "brasileirao",         # Brésil Série A
+    "mls",                 # Major League Soccer
+    # === Afrique ===
+    "afcon",               # Coupe d'Afrique des Nations
+    "can_qualif",          # CAN Qualifications
 }
-# Compétitions présentes dans les deux fournisseurs utilisés par défaut.
-# Les coupes exclusivement disponibles via API-Football sont volontairement
-# exclues du repli : une analyse sans contrôle croisé ne doit pas être forcée.
+# Compétitions disponibles via les DEUX fournisseurs (contrôle croisé possible).
+# Utilisé pour valider les fallback_competitions et le pool de rotation.
 COMMON_PROVIDER_COMPETITIONS = {
     "premier_league", "la_liga", "serie_a", "bundesliga", "ligue_1",
     "eredivisie", "champions_league", "europe_league",
+    # Nouvellement couvertes par les deux fournisseurs :
+    "primeira_liga", "championship", "brasileirao",
+}
+
+# Compétitions uniquement disponibles via API-Football (pas de contrôle croisé).
+# Qualité légèrement réduite (source unique) mais toujours analysables.
+API_FOOTBALL_ONLY_COMPETITIONS = {
+    "conference_league", "coppa_italia", "premier_league_cup",
+    "ligue_2", "serie_b", "segunda_division",
+    "mls", "afcon", "can_qualif",
 }
 
 KNOWN_MARKETS = {"match_winner", "double_chance", "over_under_2_5"}
@@ -86,6 +111,16 @@ class CouponConfig:
 
 
 @dataclass(frozen=True)
+class RotationConfig:
+    """Paramètres du système de rotation automatique des compétitions."""
+    enabled: bool
+    pool: tuple[str, ...]       # toutes les compétitions candidates à la rotation
+    max_active: int             # nb max de compétitions simultanées par jour
+    min_coverage_days: int      # réanalyse après N jours d'absence
+    budget_safety_pct: float    # stoppe la rotation si budget utilisé > X%
+
+
+@dataclass(frozen=True)
 class AppConfig:
     raw_path: str
     config_hash: str
@@ -106,6 +141,7 @@ class AppConfig:
     quality: QualityConfig
     selection: SelectionConfig
     coupons: CouponConfig
+    rotation: RotationConfig
     ai_mode: str
     ai_require_valid_source_refs: bool
     ai_enable_web_search: bool
@@ -168,6 +204,7 @@ def load_config(path: str | Path) -> AppConfig:
     # API-Football demande les cotes et indisponibilités par match. Trois
     # championnats majeurs conservent une marge sous le budget quotidien de
     # 85 appels, là où cinq championnats pourraient l'épuiser un week-end.
+    # Les compétitions supplémentaires sont ajoutées via la section [rotation].
     if not (1 <= len(competitions) <= 3):
         raise ConfigError("competitions : 1 à 3 compétitions au maximum")
     unknown = set(competitions) - KNOWN_COMPETITIONS
@@ -295,6 +332,28 @@ def load_config(path: str | Path) -> AppConfig:
     if not (30 <= refresh_win <= 720):
         raise ConfigError("scheduler.refresh_window_minutes dans [30, 720]")
 
+    rot = cfg.get("rotation") or {}
+    rot_enabled = bool(rot.get("enabled", False))
+    rot_pool_raw = rot.get("pool") or []
+    if not isinstance(rot_pool_raw, list):
+        raise ConfigError("rotation.pool : une liste est attendue")
+    rot_pool_unknown = set(rot_pool_raw) - KNOWN_COMPETITIONS
+    if rot_pool_unknown:
+        raise ConfigError(f"rotation.pool : compétitions inconnues : {sorted(rot_pool_unknown)}")
+    rot_pool_overlap = set(rot_pool_raw) & set(competitions)
+    if rot_pool_overlap:
+        raise ConfigError(
+            "rotation.pool : compétitions déjà forcées dans competitions : "
+            f"{sorted(rot_pool_overlap)} (retirer-les du pool ou de competitions)"
+        )
+    rot_max_active = int(rot.get("max_active", 8))
+    if not (1 <= rot_max_active <= 15):
+        raise ConfigError("rotation.max_active doit être dans [1, 15]")
+    rot_min_days = int(rot.get("min_coverage_days", 2))
+    rot_budget_pct = float(rot.get("budget_safety_pct", 80.0))
+    if not (50.0 <= rot_budget_pct <= 100.0):
+        raise ConfigError("rotation.budget_safety_pct doit être dans [50, 100]")
+
     return AppConfig(
         raw_path=str(p),
         config_hash=sha256_text(text),
@@ -338,6 +397,13 @@ def load_config(path: str | Path) -> AppConfig:
             prohibit_same_team=bool(c.get("prohibit_same_team", True)),
             same_context_minutes=int(c.get("same_context_minutes", 90)),
             max_candidates_displayed=int(c.get("max_candidates_displayed", 3)),
+        ),
+        rotation=RotationConfig(
+            enabled=rot_enabled,
+            pool=tuple(rot_pool_raw),
+            max_active=rot_max_active,
+            min_coverage_days=rot_min_days,
+            budget_safety_pct=rot_budget_pct,
         ),
         ai_mode=ai_mode,
         ai_require_valid_source_refs=bool(ai.get("require_valid_source_refs", True)),

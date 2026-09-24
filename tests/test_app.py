@@ -76,9 +76,9 @@ class TestBoot:
     def test_seven_tabs_present(self, app_env):
         at = boot()
         tabs = at.tabs
-        assert len(tabs) == 7
+        assert len(tabs) == 8
         titles = [t.label for t in tabs]
-        for expected in ("Tableau de bord", "Matchs", "Analyses", "Coupons",
+        for expected in ("Tableau de bord", "Compétitions", "Matchs", "Analyses", "Coupons",
                          "Prévisualisation", "Historique", "Paramètres"):
             assert any(expected in t for t in titles)
 

@@ -1037,6 +1037,29 @@ class Database:
             out[f"coupon:{row['status']}"] = row["n"]
         return out
 
+    def last_covered_date(self, competition_slug: str) -> Optional[date]:
+        from datetime import date
+        row = self.conn.execute(
+            "SELECT kickoff_utc FROM fixtures WHERE competition_slug = ? ORDER BY kickoff_utc DESC LIMIT 1",
+            (competition_slug,),
+        ).fetchone()
+        if row and row["kickoff_utc"]:
+            try:
+                # ISO string like '2026-09-22T20:00:00Z'
+                return date.fromisoformat(row["kickoff_utc"].split("T")[0])
+            except Exception:
+                return None
+        return None
+
+    def count_fixtures_for_day(self, competition_slug: str, day: date) -> int:
+        day_str = day.isoformat()
+        row = self.conn.execute(
+            "SELECT COUNT(*) AS n FROM fixtures WHERE competition_slug = ? AND kickoff_utc LIKE ?",
+            (competition_slug, f"{day_str}%"),
+        ).fetchone()
+        return row["n"] if row else 0
+
+
 
 def _wrap_with_db_lock(cls):
     """Entoure chaque méthode publique de `with self._lock:`.

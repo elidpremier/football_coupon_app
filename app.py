@@ -523,8 +523,12 @@ def screen_settings(config, secrets, db, pipeline) -> None:
         "bundesliga": "Bundesliga", "ligue_1": "Ligue 1",
         "eredivisie": "Eredivisie", "champions_league": "Ligue des champions",
         "europe_league": "Ligue Europa", "coppa_italia": "Coupe d'Italie",
-        "premier_league_cup": "Coupe d'Angleterre",
+        "premier_league_cup": "Coupe d'Angleterre", "primeira_liga": "Primeira Liga",
+        "championship": "Championship", "conference_league": "Conference League",
+        "ligue_2": "Ligue 2", "serie_b": "Serie B", "segunda_division": "Segunda Division",
+        "brasileirao": "Brasileirão", "mls": "MLS", "afcon": "CAN", "can_qualif": "CAN Qualifications",
     }
+    get_label = lambda c: labels.get(c, c.replace("_", " ").title())
     ai_labels = {
         "gemini_free": "Gemini (cloud)", "off": "Désactivée — gabarits",
         "ollama_local": "Ollama (local)",
@@ -550,12 +554,12 @@ def screen_settings(config, secrets, db, pipeline) -> None:
         priority = st.multiselect(
             "Compétitions prioritaires", all_competitions,
             default=list(config.competitions), max_selections=3,
-            format_func=labels.get,
+            format_func=get_label,
             help="L'application cherche ces compétitions en premier.",
         )
         fallback = st.multiselect(
             "Compétitions de repli", fallback_options,
-            default=list(config.fallback_competitions), format_func=labels.get,
+            default=list(config.fallback_competitions), format_func=get_label,
             help="Consultées seulement si aucun match prioritaire n'est disponible."
         )
         c1, c2, c3 = st.columns(3)
@@ -630,6 +634,67 @@ def screen_settings(config, secrets, db, pipeline) -> None:
     st.warning(config.responsible_gambling_notice)
 
 
+def screen_competitions(config, secrets, db, pipeline) -> None:
+    st.subheader("🌍 Compétitions & Rotation Intelligente")
+    if config is None:
+        st.error("Configuration invalide.")
+        return
+
+    from football.rotation import build_rotator, _get_rotation
+    rotator = build_rotator(config, db)
+    rot_cfg = _get_rotation(config)
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Mode Rotation", "🟢 Activée" if rot_cfg.enabled else "🔴 Désactivée")
+    with c2:
+        st.metric("Limite active simultanée", f"{rot_cfg.max_active} compétitions")
+    with c3:
+        st.metric("Seuil de sécurité Budget API", f"{rot_cfg.budget_safety_pct}% ({int(config.api_football_daily_budget * rot_cfg.budget_safety_pct / 100)} req/j)")
+
+    st.markdown("---")
+    st.markdown("### 📅 Plan de couverture prévisionnel (7 prochains jours)")
+    plan = rotator.get_coverage_plan(days=7)
+
+    labels = {
+        "premier_league": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League", "la_liga": "🇪🇸 La Liga", "serie_a": "🇮🇹 Serie A",
+        "bundesliga": "🇩🇪 Bundesliga", "ligue_1": "🇫🇷 Ligue 1", "eredivisie": "🇳🇱 Eredivisie",
+        "primeira_liga": "🇵🇹 Primeira Liga", "championship": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Championship",
+        "champions_league": "🏆 Champions League", "europe_league": "🇪🇺 Europa League",
+        "conference_league": "🇪🇺 Conference League", "coppa_italia": "🇮🇹 Coppa Italia",
+        "premier_league_cup": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 EFL Cup", "ligue_2": "🇫🇷 Ligue 2", "serie_b": "🇮🇹 Serie B",
+        "segunda_division": "🇪🇸 Segunda Division", "brasileirao": "🇧🇷 Brasileirão",
+        "mls": "🇺🇸 MLS", "afcon": "🌍 CAN", "can_qualif": "🌍 CAN Qualif",
+    }
+    plan_data = []
+    for row in plan:
+        comp_names = [labels.get(c, c) for c in row["competitions"]]
+        plan_data.append({
+            "Date": row["date"].strftime("%A %d/%m"),
+            "Compétitions analysées": ", ".join(comp_names),
+            "Coût estimé (API)": f"{row['estimated_budget_used']} / {row['budget_total']} req ({row['budget_pct']}%)",
+        })
+    st.dataframe(plan_data, use_container_width=True)
+
+    st.markdown("---")
+    st.markdown("### 📋 Catalogue complet des compétitions")
+    catalogue = rotator.get_catalogue()
+    cat_data = []
+    for s in catalogue:
+        status_str = "🔒 Forcée (Toujours active)" if s.is_forced else ("🔄 Pool de rotation" if s.is_in_pool else "⚪ Non activée")
+        provider_support = "API-Football & football-data" if s.slug in COMMON_PROVIDER_COMPETITIONS else "API-Football uniquement"
+        cat_data.append({
+            "Compétition": labels.get(s.slug, s.slug),
+            "Statut": status_str,
+            "Fournisseurs": provider_support,
+            "Matchs aujourd'hui": "Oui ⚽" if s.has_fixtures_today else "Non",
+            "Dernière analyse": s.last_covered_date.strftime("%d/%m/%Y") if s.last_covered_date else "Jamais",
+            "Score Prestige": s.prestige_score,
+            "Coût req/j estimé": s.estimated_api_cost,
+        })
+    st.dataframe(cat_data, use_container_width=True)
+
+
 def main() -> None:
     st.set_page_config(page_title="Football Coupon — validation",
                        page_icon="⚽", layout="wide")
@@ -650,12 +715,14 @@ def main() -> None:
     if config_error:
         st.error(f"Configuration invalide : {config_error}")
 
-    tab_dash, tab_matches, tab_analyses, tab_coupons, tab_preview, tab_history, \
+    tab_dash, tab_comps, tab_matches, tab_analyses, tab_coupons, tab_preview, tab_history, \
         tab_settings = st.tabs(
-            ["📊 Tableau de bord", "⚽ Matchs", "📄 Analyses", "🎟 Coupons",
+            ["📊 Tableau de bord", "🌍 Compétitions", "⚽ Matchs", "📄 Analyses", "🎟 Coupons",
              "🖼 Prévisualisation", "📜 Historique", "⚙️ Paramètres"])
     with tab_dash:
         screen_dashboard(config, secrets, db, pipeline)
+    with tab_comps:
+        screen_competitions(config, secrets, db, pipeline)
     with tab_matches:
         screen_matches(config, secrets, db, pipeline)
     with tab_analyses:
@@ -668,6 +735,7 @@ def main() -> None:
         screen_history(config, secrets, db, pipeline)
     with tab_settings:
         screen_settings(config, secrets, db, pipeline)
+
 
 
 if __name__ == "__main__":
