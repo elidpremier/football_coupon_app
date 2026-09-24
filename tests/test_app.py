@@ -82,6 +82,10 @@ class TestBoot:
                          "Prévisualisation", "Historique", "Paramètres"):
             assert any(expected in t for t in titles)
 
+    def test_shutdown_button_present(self, app_env):
+        at = boot()
+        assert any(b.key == "btn_shutdown_server" for b in at.button)
+
     def test_demo_mode_banner(self, app_env):
         at = boot()
         info = " ".join(str(i.value) for i in at.info)

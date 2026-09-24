@@ -98,25 +98,59 @@ class ApiFootballProvider(BaseProvider):
                 if entry_fid != fx.provider_fixture_id:
                     continue
                 for bm in entry.get("bookmakers") or []:
-                    for market in bm.get("markets") or []:
-                        market_raw = market.get("name", "")
+                    bm_name = bm.get("bookmaker") or bm.get("name") or ""
+                    update_time = bm.get("lastUpdateTime") or bm.get("update") or entry.get("update")
+                    observed = (parse_iso(update_time)
+                                if update_time else datetime.now(timezone.utc))
+
+                    bets = bm.get("bets") or bm.get("markets") or []
+                    for bet in bets:
+                        bet_name = bet.get("name", "")
                         try:
-                            market_internal = normalize_market(market_raw)
+                            market_internal = normalize_market(bet_name)
                         except ValueError:
                             continue
-                        mapping = {
-                            "match_winner": {"1": "home", "X": "draw", "2": "away"},
-                            "double_chance": {"1X": "home_draw", "12": "home_away",
-                                              "X2": "away_draw"},
-                            "over_under_2_5": {"Over": "over", "Under": "under"},
-                        }[market_internal]
-                        for obm in market.get("bookmakers") or []:
+
+                        # Format officiel API-Football v3: "values" array
+                        values = bet.get("values")
+                        if values is not None:
+                            for val in values:
+                                val_name = str(val.get("value", ""))
+                                val_odd = val.get("odd")
+                                if not val_odd:
+                                    continue
+                                try:
+                                    outcome_internal = normalize_outcome(market_internal, val_name)
+                                except ValueError:
+                                    continue
+                                try:
+                                    out.append(POdds(
+                                        provider=self.name,
+                                        provider_fixture_id=fx.provider_fixture_id,
+                                        market=market_internal,
+                                        outcome=outcome_internal,
+                                        odds=to_decimal(val_odd),
+                                        bookmaker=bm_name,
+                                        observed_at_utc=observed,
+                                    ))
+                                except (ValueError, TypeError) as exc:
+                                    raise ProviderError(
+                                        f"api_football : cote invalide "
+                                        f"{bet_name}/{val_name} : {exc}"
+                                    ) from exc
+
+                        # Format test fixture / répliques alternatives
+                        obms = bet.get("bookmakers") or []
+                        for obm in obms:
                             outcome_raw = str(obm.get("name", ""))
+                            mapping = {
+                                "match_winner": {"1": "home", "X": "draw", "2": "away", "Home": "home", "Draw": "draw", "Away": "away"},
+                                "double_chance": {"1X": "home_draw", "12": "home_away", "X2": "away_draw",
+                                                  "Home/Draw": "home_draw", "Home/Away": "home_away", "Draw/Away": "away_draw"},
+                                "over_under_2_5": {"Over": "over", "Under": "under"},
+                            }.get(market_internal, {})
                             if outcome_raw not in mapping:
                                 continue
-                            # Format v3 : une entrée par issue, la cote dans
-                            # "123" (1X2) ou "Over/Under" — liste à 1 élément,
-                            # parfois dictionnaire {issue: cote}.
                             raw_vals = obm.get("123", obm.get("Over/Under"))
                             if isinstance(raw_vals, list):
                                 if not raw_vals:
@@ -128,9 +162,11 @@ class ApiFootballProvider(BaseProvider):
                                 value = raw_vals[outcome_raw]
                             else:
                                 value = raw_vals
-                            last_update = obm.get("lastUpdateTime")
-                            observed = (parse_iso(last_update)
-                                        if last_update else datetime.now(timezone.utc))
+                            if value is None:
+                                continue
+                            last_update = obm.get("lastUpdateTime") or update_time
+                            obs_time = (parse_iso(last_update)
+                                        if last_update else observed)
                             try:
                                 out.append(POdds(
                                     provider=self.name,
@@ -138,13 +174,13 @@ class ApiFootballProvider(BaseProvider):
                                     market=market_internal,
                                     outcome=mapping[outcome_raw],
                                     odds=to_decimal(value),
-                                    bookmaker=bm.get("bookmaker", ""),
-                                    observed_at_utc=observed,
+                                    bookmaker=bm_name,
+                                    observed_at_utc=obs_time,
                                 ))
                             except (ValueError, TypeError) as exc:
                                 raise ProviderError(
                                     f"api_football : cote invalide "
-                                    f"{market_raw}/{outcome_raw} : {exc}"
+                                    f"{bet_name}/{outcome_raw} : {exc}"
                                 ) from exc
         return out
 
@@ -228,10 +264,11 @@ class ApiFootballProvider(BaseProvider):
         fixtures = self.fetch_fixtures(day, competition_slug)
         out: list[PAvailability] = []
         for fx in fixtures:
-            url = f"{BASE_URL}/fixtures/{fx.provider_fixture_id}/injuries"
+            url = f"{BASE_URL}/injuries"
             logical = f"injuries|fixture={fx.provider_fixture_id}"
+            params = {"fixture": fx.provider_fixture_id}
             try:
-                payload, _ = self.client.get_json(url, logical_url=logical,
+                payload, _ = self.client.get_json(url, logical_url=logical, params=params,
                                                   headers={"x-apisports-key": self._token},
                                                   ttl_seconds=3600)
             except Exception as exc:
@@ -240,6 +277,24 @@ class ApiFootballProvider(BaseProvider):
             if isinstance(out_items, dict):
                 out_items = [out_items]
             for item in out_items:
+                # 1) Format officiel API-Football v3 (/injuries?fixture=...)
+                player_obj = item.get("player") or {}
+                if isinstance(player_obj, dict) and player_obj.get("name"):
+                    player_name = player_obj.get("name")
+                    team_name = ((item.get("team") or {}).get("name") or fx.home_team)
+                    reason = item.get("reason") or "injury"
+                    out.append(PAvailability(
+                        provider=self.name,
+                        provider_fixture_id=fx.provider_fixture_id,
+                        team=team_name,
+                        player=player_name,
+                        reason=str(reason).lower(),
+                        status="confirmed",
+                        source_ref=f"api_football#injuries#{fx.provider_fixture_id}",
+                    ))
+                    continue
+
+                # 2) Format structure groupée (home/away)
                 fx_data = item.get("fixture") or {}
                 for side in ("home", "away"):
                     team_name = ((fx_data.get(side) or {}).get("name")
