@@ -107,8 +107,11 @@ def normalize_market(raw: str) -> str:
         "doublechance": "double_chance",
         "dc": "double_chance",
         "ou25": "over_under_2_5",
+        "overunder": "over_under_2_5",
         "overunder25": "over_under_2_5",
         "totalgoals25": "over_under_2_5",
+        "goalsoverunder": "over_under_2_5",
+        "goalsoverunder25": "over_under_2_5",
     }
     if t in aliases:
         return aliases[t]

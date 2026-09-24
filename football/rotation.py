@@ -84,6 +84,8 @@ class CompetitionStatus:
     prestige_score: int                   # score de prestige (0-100)
     is_forced: bool                       # dans competitions[] (toujours incluse)
     is_in_pool: bool                      # dans rotation.pool
+    is_scheduled_today: bool = False      # sélectionnée dans le plan du jour
+    fixtures_today_count: int = 0         # nombre de matchs enregistrés en base
     days_since_covered: int = field(init=False)
 
     def __post_init__(self) -> None:
@@ -253,23 +255,35 @@ class CompetitionRotator:
         """Retourne l'état de toutes les compétitions connues (UI catalogue)."""
         from .config import KNOWN_COMPETITIONS
         today = date.today()
+        active_today = set(self.get_active_competitions(today))
         result = []
         forced_set = set(self._config.competitions)
         rot = _get_rotation(self._config)
         pool_set = set(rot.pool)
         for slug in sorted(KNOWN_COMPETITIONS):
             status = self._build_status(slug, today)
+            count_today = self._get_fixture_count(slug, today)
             status_with_flags = CompetitionStatus(
                 slug=slug,
                 last_covered_date=status.last_covered_date,
-                has_fixtures_today=status.has_fixtures_today,
+                has_fixtures_today=(count_today > 0),
                 estimated_api_cost=status.estimated_api_cost,
                 prestige_score=status.prestige_score,
                 is_forced=(slug in forced_set),
                 is_in_pool=(slug in pool_set),
+                is_scheduled_today=(slug in active_today),
+                fixtures_today_count=count_today,
             )
             result.append(status_with_flags)
         return result
+
+    def _get_fixture_count(self, slug: str, day: date) -> int:
+        if self._storage is None:
+            return 0
+        try:
+            return self._storage.count_fixtures_for_day(slug, day)
+        except Exception:
+            return 0
 
     # ------------------------------------------------------------------
     # Helpers internes

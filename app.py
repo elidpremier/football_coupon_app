@@ -87,6 +87,61 @@ def _chip(status: str) -> str:
     return colors.get(status, status)
 
 
+def render_diagnostic_panel(db, config, pipeline) -> None:
+    st.markdown("### 🔍 Diagnostic d'analyse et de génération")
+    from football.utils import jload
+
+    # 1. État des exécutions
+    runs = db.last_runs(5)
+    st.markdown("**1. Historique récent de la chaîne :**")
+    if not runs:
+        st.info("Aucune exécution enregistrée. Lancez la chaîne du jour à l'aide du bouton **▶️ Chaîne du jour**.")
+    else:
+        for r in runs[:3]:
+            st.caption(f"• **`{r['job']}`** — statut `{r['status']}` le `{r['started_at_utc'][:19]}` — {r['summary']}")
+
+    # 2. Matchs collectés et raisons d'exclusion
+    fxs = _visible_fixtures(db)
+    st.markdown(f"**2. Collecte des matchs (48h) :** `{len(fxs)} match(s) en base`")
+    if not fxs:
+        st.warning(
+            "• **Aucun match en base locale.**\n"
+            "• Si vous avez lancé la chaîne mais qu'aucun match n'est apparu, cela signifie que le fournisseur API "
+            "n'a renvoyé aucun match programmé pour aujourd'hui dans les compétitions scannées (prioritaires ou repli)."
+        )
+    else:
+        incoherent = [f for f in fxs if f["matching_status"] == "INCOHERENT"]
+        review_req = [f for f in fxs if f["matching_status"] == "MATCHING_REVIEW_REQUIRED"]
+        if incoherent:
+            st.warning(f"• **{len(incoherent)} match(s) exclu(s)** pour heure de coup d'envoi divergente entre sources (> 5 min).")
+        if review_req:
+            st.warning(f"• **{len(review_req)} match(s) exclu(s)** nécessitant une revue manuelle des noms d'équipes.")
+
+    # 3. Sélections & Qualité
+    sels = db.execute("SELECT * FROM selections ORDER BY id DESC LIMIT 100").fetchall()
+    eligible_sels = [s for s in sels if s["status"] == "eligible"]
+    watch_sels = [s for s in sels if s["status"] == "watch"]
+    excl_sels = [s for s in sels if s["status"] in ("exclude", "manual_exclude")]
+
+    st.markdown(f"**3. Éligibilité des sélections :** `{len(eligible_sels)}` éligibles, `{len(watch_sels)}` surveillance, `{len(excl_sels)}` exclues")
+    if sels and not eligible_sels:
+        st.warning("• **Aucune sélection éligible (Score < 80/100).** Raisons courantes des pénalités :")
+        for s in sels[:5]:
+            reasons = jload(s["reasons"] or "[]")
+            r_str = ", ".join(reasons) if reasons else "cotes périmées (>6h), absence de seconde source ou complétude incomplète"
+            st.caption(f"  - `{s['fixture_key']}` ({s['market']}/{s['outcome']}) : Score {s['score']:.0f}/100 — **{r_str}**")
+
+    # 4. Diagnostic coupons
+    coupons = db.all_coupons(10)
+    min_req = config.coupons.pilot_max_selections if config else 2
+    st.markdown(f"**4. Génération des coupons :** `{len(coupons)}` coupon(s) candidat(s)")
+    if len(eligible_sels) < min_req:
+        st.error(
+            f"❌ **Génération de coupon bloquée :** Le mode pilote requiert au moins "
+            f"**{min_req} sélections éligibles (score ≥ 80)**. Seulement **{len(eligible_sels)}** est disponible actuellement."
+        )
+
+
 def screen_dashboard(config, secrets, db, pipeline) -> None:
     st.subheader("Tableau de bord")
     today = utcnow().strftime("%Y-%m-%d")
@@ -155,6 +210,13 @@ def screen_dashboard(config, secrets, db, pipeline) -> None:
                 st.success(rep.message)
             st.rerun()
 
+    st.divider()
+    fxs = _visible_fixtures(db)
+    coupons = db.all_coupons(10)
+    has_items = bool(fxs and coupons)
+    with st.expander("🔍 Panneau de diagnostic détaillé (pourquoi aucun match/coupon ?)", expanded=not has_items):
+        render_diagnostic_panel(db, config, pipeline)
+
 
 def _visible_fixtures(db, now=None):
     now = now or utcnow()
@@ -169,6 +231,7 @@ def screen_matches(config, secrets, db, pipeline) -> None:
     if not fxs:
         st.info("Aucun match collecté sur la période. Lancez la chaîne du jour "
                 "(tableau de bord) ou attendez la tâche planifiée.")
+        render_diagnostic_panel(db, config, pipeline)
         return
     rows = []
     for fx in fxs:
@@ -298,6 +361,7 @@ def screen_coupons(config, secrets, db, pipeline) -> None:
         st.info("Aucun coupon à valider. Le constructeur n'impose jamais un "
                 "coupon : si les contraintes ne sont pas satisfaites, il n'y "
                 "en a aucun.")
+        render_diagnostic_panel(db, config, pipeline)
         return
     for c in coupons:
         from football.utils import jload
@@ -683,16 +747,26 @@ def screen_competitions(config, secrets, db, pipeline) -> None:
     for s in catalogue:
         status_str = "🔒 Forcée (Toujours active)" if s.is_forced else ("🔄 Pool de rotation" if s.is_in_pool else "⚪ Non activée")
         provider_support = "API-Football & football-data" if s.slug in COMMON_PROVIDER_COMPETITIONS else "API-Football uniquement"
+
+        sched_str = "Oui 📅 (Analyse prévue)" if s.is_scheduled_today else "Non"
+        if s.fixtures_today_count > 0:
+            db_str = f"Oui ⚽ ({s.fixtures_today_count} collectés)"
+        else:
+            db_str = "0 (attente collecte)" if s.is_scheduled_today else "0"
+
         cat_data.append({
             "Compétition": labels.get(s.slug, s.slug),
-            "Statut": status_str,
+            "Statut de rotation": status_str,
+            "Analyse prévue aujourd'hui": sched_str,
+            "Matchs en base (aujourd'hui)": db_str,
             "Fournisseurs": provider_support,
-            "Matchs aujourd'hui": "Oui ⚽" if s.has_fixtures_today else "Non",
             "Dernière analyse": s.last_covered_date.strftime("%d/%m/%Y") if s.last_covered_date else "Jamais",
             "Score Prestige": s.prestige_score,
             "Coût req/j estimé": s.estimated_api_cost,
         })
     st.dataframe(cat_data, use_container_width=True)
+    st.caption("ℹ️ **Explication des colonnes** : *Analyse prévue aujourd'hui* indique les compétitions planifiées par la rotation pour la journée. "
+               "*Matchs en base* indique le nombre de rencontres effectivement collectées localement après le lancement de la chaîne du jour.")
 
 
 def main() -> None:
@@ -702,6 +776,16 @@ def main() -> None:
         os.environ.get("DB_PATH", ""), os.environ.get("OUTBOX_DIR", ""))
     if config is not None:
         st.session_state["tz"] = config.timezone
+
+    with st.sidebar:
+        st.markdown("### ⚙️ Serveur")
+        if st.button("🛑 Fermer l'application (Éteindre le serveur)", key="btn_shutdown_server", type="primary", use_container_width=True):
+            st.warning("⚠️ **Arrêt du serveur Streamlit en cours...**\nL'application va s'éteindre.")
+            st.caption("Vous pouvez fermer cet onglet dans votre navigateur.")
+            import time
+            time.sleep(0.5)
+            os._exit(0)
+        st.divider()
 
     st.title("⚽ Football Coupon — analyse & validation")
     demo = pipeline is not None and pipeline.is_demo

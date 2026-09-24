@@ -156,6 +156,9 @@ class Pipeline:
         counters["fallback_scanned"] = fallback_scanned
         counters["competitions_with_matches"] = len(selected_competitions)
 
+        counters["target_competitions"] = target_competitions
+        counters["scanned_competitions"] = selected_competitions
+
         for competition in selected_competitions:
             key_map: dict[str, str] = {}
             primary_fixtures = prefetched_fixtures[competition]
@@ -271,7 +274,7 @@ class Pipeline:
         if counters.get("fallback_used"):
             source_label = " — repli de compétitions activé"
         if not counters["fixtures"] and not errors:
-            source_label = " — aucun match trouvé, y compris après le repli"
+            source_label = f" — aucun match trouvé sur les {len(target_competitions)} compétition(s) scannée(s)"
         return StepReport("collect", status, summary=counters, errors=errors,
                           message=f"{counters['fixtures']} match(s) collecté(s), "
                                   f"{counters['odds']} cote(s) horodatée(s)"

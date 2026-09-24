@@ -90,12 +90,80 @@ class TestApiFootball:
         assert by["Brighton & Hove Albion"].position == 4
 
     def test_parse_injuries(self, db, recorded):
-        p, _ = self._provider(db, recorded)
+        p, transport = self._provider(db, recorded)
         avail = p.fetch_availability(DAY, "premier_league")
         by = {(a.team, a.player): a for a in avail}
         assert by[("Arsenal", "M. Silva")].status == "confirmed"
         assert by[("Arsenal", "M. Silva")].reason == "injury"
         assert by[("Chelsea", "J. Turner")].status == "unconfirmed"
+
+        # Vérifie que l'URL /injuries avec paramètre fixture est bien utilisée
+        inj_calls = [c for c in transport.calls if "/injuries" in c["url"]]
+        assert len(inj_calls) > 0
+        assert inj_calls[0]["params"] == {"fixture": "1101"}
+
+    def test_parse_odds_v3_bets_values_schema(self, db):
+        recorded_v3 = {
+            "aff_fixtures": {
+                "response": [
+                    {
+                        "fixture": {"id": 1101, "date": "2026-09-20T18:00:00+00:00", "status": {"short": "NS"}},
+                        "league": {"id": 39, "name": "Premier League"},
+                        "teams": {"home": {"name": "Arsenal"}, "away": {"name": "Chelsea"}}
+                    }
+                ]
+            },
+            "aff_odds": {
+                "response": [
+                    {
+                        "fixture": {"id": 1101},
+                        "update": "2026-09-20T11:00:00+00:00",
+                        "bookmakers": [
+                            {
+                                "id": 6,
+                                "name": "Bwin",
+                                "bets": [
+                                    {
+                                        "id": 1,
+                                        "name": "Match Winner",
+                                        "values": [
+                                            {"value": "Home", "odd": "1.85"},
+                                            {"value": "Draw", "odd": "3.50"},
+                                            {"value": "Away", "odd": "4.20"}
+                                        ]
+                                    },
+                                    {
+                                        "id": 5,
+                                        "name": "Goals Over/Under",
+                                        "values": [
+                                            {"value": "Over 2.5", "odd": "1.95"},
+                                            {"value": "Under 2.5", "odd": "1.85"}
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        def handler(method, url, headers, params, body):
+            if "/fixtures" in url:
+                return recorded_v3["aff_fixtures"]
+            if "/odds" in url:
+                return recorded_v3["aff_odds"]
+            return (404, {"error": "nf"})
+
+        client, _ = make_client(db, handler)
+        p = ApiFootballProvider(client, "token-test")
+        odds = p.fetch_odds(DAY, "premier_league")
+        assert len(odds) == 5
+        by = {(o.market, o.outcome): o.odds for o in odds}
+        assert by[("match_winner", "home")] == to_decimal("1.85")
+        assert by[("match_winner", "draw")] == to_decimal("3.50")
+        assert by[("match_winner", "away")] == to_decimal("4.20")
+        assert by[("over_under_2_5", "over")] == to_decimal("1.95")
+        assert by[("over_under_2_5", "under")] == to_decimal("1.85")
 
     def test_http_error_wrapped(self, db):
         def handler(method, url, headers, params, body):
