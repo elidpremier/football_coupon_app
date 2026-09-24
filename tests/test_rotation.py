@@ -48,8 +48,19 @@ def test_catalogue_contains_all_competitions():
     cfg = load_config("config/football.yaml")
     rotator = build_rotator(cfg)
     catalogue = rotator.get_catalogue()
-    assert len(catalogue) >= 20
+    assert len(catalogue) >= 22
     slugs = [c.slug for c in catalogue]
     assert "primeira_liga" in slugs
     assert "championship" in slugs
     assert "afcon" in slugs
+    assert "uefa_nations_league" in slugs
+    assert "wc_qualif" in slugs
+    for status in catalogue:
+        assert hasattr(status, "is_scheduled_today")
+        assert hasattr(status, "fixtures_today_count")
+
+
+def test_provider_code_mapping_for_new_competitions():
+    from football.providers.base import competition_to_provider_code
+    assert competition_to_provider_code("api_football", "uefa_nations_league") == 5
+    assert competition_to_provider_code("api_football", "wc_qualif") == 32

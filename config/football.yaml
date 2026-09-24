@@ -33,6 +33,8 @@ rotation:
     - mls
     - afcon
     - can_qualif
+    - uefa_nations_league
+    - wc_qualif
     - coppa_italia
     - premier_league_cup
   max_active: 8           # max de compétitions simultanées (forcées + rotation)

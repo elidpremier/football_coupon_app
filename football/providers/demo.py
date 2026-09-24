@@ -73,7 +73,7 @@ _YESTERDAY_RESULTS: dict[int, tuple[int, int]] = {
 def demo_day_for(now: datetime) -> date:
     now = now.astimezone(timezone.utc)
     today = now.date()
-    cutoff = datetime.combine(today, time(21, 0), tzinfo=timezone.utc)
+    cutoff = datetime.combine(today, time(18, 0), tzinfo=timezone.utc)
     return today if now < cutoff else today + timedelta(days=1)
 
 

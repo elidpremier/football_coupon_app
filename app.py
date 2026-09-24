@@ -591,6 +591,7 @@ def screen_settings(config, secrets, db, pipeline) -> None:
         "championship": "Championship", "conference_league": "Conference League",
         "ligue_2": "Ligue 2", "serie_b": "Serie B", "segunda_division": "Segunda Division",
         "brasileirao": "Brasileirão", "mls": "MLS", "afcon": "CAN", "can_qualif": "CAN Qualifications",
+        "uefa_nations_league": "Ligue des nations UEFA", "wc_qualif": "Qualif. Coupe du monde",
     }
     get_label = lambda c: labels.get(c, c.replace("_", " ").title())
     ai_labels = {
@@ -729,6 +730,7 @@ def screen_competitions(config, secrets, db, pipeline) -> None:
         "premier_league_cup": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 EFL Cup", "ligue_2": "🇫🇷 Ligue 2", "serie_b": "🇮🇹 Serie B",
         "segunda_division": "🇪🇸 Segunda Division", "brasileirao": "🇧🇷 Brasileirão",
         "mls": "🇺🇸 MLS", "afcon": "🌍 CAN", "can_qualif": "🌍 CAN Qualif",
+        "uefa_nations_league": "🇪🇺 Ligue des nations", "wc_qualif": "🌍 Qualif. Coupe du monde",
     }
     plan_data = []
     for row in plan:
@@ -748,11 +750,13 @@ def screen_competitions(config, secrets, db, pipeline) -> None:
         status_str = "🔒 Forcée (Toujours active)" if s.is_forced else ("🔄 Pool de rotation" if s.is_in_pool else "⚪ Non activée")
         provider_support = "API-Football & football-data" if s.slug in COMMON_PROVIDER_COMPETITIONS else "API-Football uniquement"
 
-        sched_str = "Oui 📅 (Analyse prévue)" if s.is_scheduled_today else "Non"
-        if s.fixtures_today_count > 0:
-            db_str = f"Oui ⚽ ({s.fixtures_today_count} collectés)"
+        is_scheduled = getattr(s, "is_scheduled_today", False)
+        fixtures_count = getattr(s, "fixtures_today_count", 0)
+        sched_str = "Oui 📅 (Analyse prévue)" if is_scheduled else "Non"
+        if fixtures_count > 0:
+            db_str = f"Oui ⚽ ({fixtures_count} collectés)"
         else:
-            db_str = "0 (attente collecte)" if s.is_scheduled_today else "0"
+            db_str = "0 (attente collecte)" if is_scheduled else "0"
 
         cat_data.append({
             "Compétition": labels.get(s.slug, s.slug),
@@ -778,13 +782,16 @@ def main() -> None:
         st.session_state["tz"] = config.timezone
 
     with st.sidebar:
-        st.markdown("### ⚙️ Serveur")
-        if st.button("🛑 Fermer l'application (Éteindre le serveur)", key="btn_shutdown_server", type="primary", use_container_width=True):
-            st.warning("⚠️ **Arrêt du serveur Streamlit en cours...**\nL'application va s'éteindre.")
-            st.caption("Vous pouvez fermer cet onglet dans votre navigateur.")
-            import time
-            time.sleep(0.5)
-            os._exit(0)
+        col_title, col_btn = st.columns([4, 1])
+        with col_title:
+            st.markdown("### ⚙️ Serveur")
+        with col_btn:
+            if st.button("🛑", key="btn_shutdown_server", help="Éteindre le serveur Streamlit"):
+                st.warning("⚠️ **Arrêt du serveur Streamlit en cours...**\nL'application va s'éteindre.")
+                st.caption("Vous pouvez fermer cet onglet dans votre navigateur.")
+                import time
+                time.sleep(0.5)
+                os._exit(0)
         st.divider()
 
     st.title("⚽ Football Coupon — analyse & validation")
