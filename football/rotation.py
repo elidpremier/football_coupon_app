@@ -135,7 +135,9 @@ class CompetitionStatus:
             score += bonus
 
         # Variabilité déterministe quotidienne (rotation équitable du pool)
-        day_hash = (target_day.toordinal() * 17 + abs(hash(self.slug))) % 15
+        slug_hash = sum((index + 1) * ord(char)
+                for index, char in enumerate(self.slug))
+        day_hash = (target_day.toordinal() * 17 + slug_hash) % 15
         score += day_hash
 
         return score
@@ -146,6 +148,7 @@ from .config import RotationConfig
 DEFAULT_ROTATION = RotationConfig(
     enabled=False,
     pool=(),
+    always_scan=(),
     max_active=8,
     min_coverage_days=2,
     budget_safety_pct=80.0,
@@ -202,9 +205,14 @@ class CompetitionRotator:
             for slug in rot.pool
         ]
 
-        # Trier par priorité décroissante
-        statuses.sort(key=lambda s: s.priority_score(rot.min_coverage_days, day),
-                      reverse=True)
+        # Les compétitions prioritaires sont sondées même si leur score de
+        # rotation est inférieur à celui d'une ligue nationale ce jour-là.
+        protected = [s for s in statuses if s.slug in rot.always_scan]
+        regular = [s for s in statuses if s.slug not in rot.always_scan]
+        score_key = lambda s: (-s.priority_score(rot.min_coverage_days, day), s.slug)
+        protected.sort(key=score_key)
+        regular.sort(key=score_key)
+        statuses = protected + regular
 
         selected_from_pool: list[str] = []
         max_pool = rot.max_active - len(forced)

@@ -42,6 +42,16 @@ CONFIG_PATH = ROOT / "config" / "football.yaml"
 TZ = ZoneInfo("Africa/Ouagadougou")  # surchargé par la config après chargement
 
 
+def _sync_rotation_settings(raw: dict, priority: list[str], enabled: bool) -> None:
+    rotation = raw.setdefault("rotation", {})
+    rotation["enabled"] = bool(enabled)
+    rotation_pool = [c for c in rotation.get("pool", []) if c not in priority]
+    rotation["pool"] = rotation_pool
+    rotation["always_scan"] = [
+        c for c in rotation.get("always_scan", []) if c in rotation_pool
+    ]
+
+
 @st.cache_resource(show_spinner=False)
 def get_context(db_path_key: str, outbox_dir_key: str):
     # les variables d'environnement font partie de la clé de cache :
@@ -627,6 +637,11 @@ def screen_settings(config, secrets, db, pipeline) -> None:
             default=list(config.fallback_competitions), format_func=get_label,
             help="Consultées seulement si aucun match prioritaire n'est disponible."
         )
+        rotation_enabled = st.checkbox(
+            "Activer la rotation automatique",
+            value=config.rotation.enabled,
+            help="Désactivez cette option pour analyser uniquement les compétitions prioritaires.",
+        )
         c1, c2, c3 = st.columns(3)
         with c1:
             app_mode = st.selectbox("Mode de publication", ["pilot", "public"],
@@ -668,6 +683,7 @@ def screen_settings(config, secrets, db, pipeline) -> None:
             raw["project"]["mode"] = app_mode
             raw["competitions"] = priority
             raw["fallback_competitions"] = [c for c in fallback if c not in priority]
+            _sync_rotation_settings(raw, priority, rotation_enabled)
             raw["providers"]["api_football_daily_budget"] = int(api_budget)
             raw["quality"].update({
                 "eligible_threshold": float(eligible),

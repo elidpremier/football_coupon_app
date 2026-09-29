@@ -59,6 +59,23 @@ def buttons_prefixed(at: AppTest, prefix: str) -> list:
 
 
 class TestBoot:
+    def test_priority_competitions_are_removed_from_rotation(self):
+        from app import _sync_rotation_settings
+
+        raw = {
+            "rotation": {
+                "enabled": True,
+                "pool": ["afcon", "uefa_nations_league", "championship"],
+                "always_scan": ["afcon", "uefa_nations_league"],
+            }
+        }
+        _sync_rotation_settings(raw, ["afcon", "uefa_nations_league"], False)
+        assert raw["rotation"] == {
+            "enabled": False,
+            "pool": ["championship"],
+            "always_scan": [],
+        }
+
     def test_app_boots_without_errors(self, app_env):
         at = boot()
         assert not at.exception

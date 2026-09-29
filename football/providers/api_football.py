@@ -28,7 +28,7 @@ LEAGUE_NAMES = {
     79: "coppa_italia", 131: "premier_league_cup", 94: "primeira_liga",
     40: "championship", 848: "conference_league", 62: "ligue_2",
     136: "serie_b", 141: "segunda_division", 71: "brasileirao",
-    253: "mls", 6: "afcon", 30: "can_qualif",
+    253: "mls", 5: "uefa_nations_league", 6: "afcon", 30: "can_qualif",
 }
 
 
@@ -42,14 +42,48 @@ class ApiFootballProvider(BaseProvider):
     def fetch_fixtures(self, day: date, competition_slug: str) -> list[PFixture]:
         league = competition_to_provider_code("api_football", competition_slug)
         url = f"{BASE_URL}/fixtures"
-        logical = f"fixtures|date={day.isoformat()}|league={league}"
-        params = {"date": day.isoformat(), "league": league}
+        # API-Football exige la saison dès qu'un filtre league est fourni.
+        # Sans ce paramètre, l'API répond HTTP 200 avec errors.season et le
+        # pipeline interprétait à tort cette réponse comme zéro match.
+        season = day.year
+        logical = f"fixtures|date={day.isoformat()}|league={league}|season={season}"
+        params = {"date": day.isoformat(), "league": league, "season": season}
         try:
             payload, _ = self.client.get_json(url, logical_url=logical, params=params,
                                               headers={"x-apisports-key": self._token})
         except Exception as exc:
             raise ProviderError(f"api_football.fixtures : {exc}") from exc
-        items = (payload or {}).get("response") or []
+        api_errors = (payload or {}).get("errors") or {}
+        if api_errors:
+            # Le plan Free peut refuser la saison courante, tout en
+            # autorisant la recherche par date. On récupère alors la journée
+            # complète une seule fois (mise en cache), puis on filtre par ID.
+            plan_error = str(api_errors.get("plan", "")).lower()
+            if "season" not in plan_error and "saison" not in plan_error:
+                raise ProviderError(
+                    f"api_football.fixtures : erreur API pour {competition_slug} "
+                    f"({day.isoformat()}, saison {season}) : {api_errors}"
+                )
+            date_logical = f"fixtures|date={day.isoformat()}|all"
+            try:
+                payload, _ = self.client.get_json(
+                    url, logical_url=date_logical,
+                    params={"date": day.isoformat()},
+                    headers={"x-apisports-key": self._token},
+                )
+            except Exception as exc:
+                raise ProviderError(f"api_football.fixtures(date) : {exc}") from exc
+            date_errors = (payload or {}).get("errors") or {}
+            if date_errors:
+                raise ProviderError(
+                    f"api_football.fixtures(date) : erreur API pour "
+                    f"{day.isoformat()} : {date_errors}"
+                )
+
+        items = [
+            item for item in ((payload or {}).get("response") or [])
+            if (item.get("league") or {}).get("id") == int(league)
+        ]
         out = []
         for it in items:
             try:

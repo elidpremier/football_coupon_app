@@ -57,7 +57,7 @@ class TestApiFootball:
         return ApiFootballProvider(client, "token-test"), transport
 
     def test_parse_fixtures(self, db, recorded):
-        p, _ = self._provider(db, recorded)
+        p, transport = self._provider(db, recorded)
         fxs = p.fetch_fixtures(DAY, "premier_league")
         assert len(fxs) == 2
         f = fxs[0]
@@ -66,6 +66,33 @@ class TestApiFootball:
         assert f.kickoff_utc == datetime(2026, 9, 20, 18, 0, tzinfo=timezone.utc)
         assert f.status == "NS"
         assert f.competition_slug == "premier_league"
+        fixture_call = next(c for c in transport.calls if "/fixtures" in c["url"])
+        assert fixture_call["params"] == {
+            "date": "2026-09-20", "league": 39, "season": 2026,
+        }
+
+    def test_api_errors_are_not_reported_as_no_matches(self, db):
+        def handler(method, url, headers, params, body):
+            return {"response": [], "errors": {"season": "The Season field is required."}}
+
+        client, _ = make_client(db, handler)
+        provider = ApiFootballProvider(client, "token-test")
+        with pytest.raises(ProviderError, match="saison 2026"):
+            provider.fetch_fixtures(DAY, "uefa_nations_league")
+
+    def test_free_plan_falls_back_to_date_and_filters_competition(self, db, recorded):
+        def handler(method, url, headers, params, body):
+            if params.get("league"):
+                return {"response": [], "errors": {
+                    "plan": "Free plans do not have access to this season, try from 2022 to 2024."
+                }}
+            return recorded["aff_fixtures"]
+
+        client, _ = make_client(db, handler)
+        provider = ApiFootballProvider(client, "token-test")
+        fixtures = provider.fetch_fixtures(DAY, "premier_league")
+        assert len(fixtures) == 2
+        assert all(f.competition_slug == "premier_league" for f in fixtures)
 
     def test_parse_odds_with_timestamps(self, db, recorded):
         p, _ = self._provider(db, recorded)

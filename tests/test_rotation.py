@@ -64,3 +64,10 @@ def test_provider_code_mapping_for_new_competitions():
     from football.providers.base import competition_to_provider_code
     assert competition_to_provider_code("api_football", "uefa_nations_league") == 5
     assert competition_to_provider_code("api_football", "wc_qualif") == 32
+
+
+def test_rotation_always_scans_international_competitions():
+    cfg = load_config("config/football.yaml")
+    active = build_rotator(cfg).get_active_competitions(date(2026, 9, 24))
+    for competition in ("afcon", "can_qualif", "uefa_nations_league"):
+        assert competition in active

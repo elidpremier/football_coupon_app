@@ -4,7 +4,7 @@
 
 PY        ?= python3
 VENV      ?= .venv
-PIP       := $(VENV)/bin/pip
+PIP       := $(VENV)/bin/python -m pip
 TEST      ?= tests
 CONFIG    ?= config/football.yaml
 SCHED     := $(VENV)/bin/python -m football.scheduler

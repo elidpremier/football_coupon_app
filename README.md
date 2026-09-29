@@ -304,6 +304,7 @@ Deux fichiers, tous les deux versionnés dans les analyses (hash du YAML) :
 | `quality` | Seuils 80/65, `max_odds_age_hours: 6`, `kickoff_tolerance_minutes: 5`, poids du score qualité |
 | `selection` | Grille 35/20/15/15/15, `min_selection_probability: 0.45` |
 | `coupons` | `pilot_max_selections: 2`, `public_max_selections: 3`, `same_context_minutes: 90`, `max_published_per_day: 1` |
+| `rotation` | `enabled`, `pool`, `always_scan`, `max_active` et budget de sécurité ; l'onglet Paramètres retire automatiquement les compétitions prioritaires du pool |
 | `ai` | `mode: off\|gemini_free\|ollama_local`, `enable_web_search: true\|false`, `require_valid_source_refs: true`, `prompt_version: v1` |
 | `publishing` | Canal de test, `max_caption_chars: 1024`, `max_png_bytes`, mention RG/responsable |
 | `probabilities` | `source: market` (seul mode MVP), `model_version: market_normalized_v1` |
@@ -428,5 +429,6 @@ football_coupon_app/
 | Match `INCOHERENT` | Divergence de kickoff > 5 min entre fournisseurs → exclu par conception. |
 | Match `MATCHING_REVIEW_REQUIRED` | Noms d'équipes flous entre sources → exclu, à vérifier manuellement dans l'onglet Matchs. |
 | Run `quota_exceeded` | Budget journalier API atteint → le job s'arrête proprement ; relancer le lendemain. |
+| Matchs actuels absents avec API-Football Free | Le plan Free peut refuser la saison courante avec un filtre `league` ; l'application bascule automatiquement sur la recherche par date et filtre ensuite l'ID de compétition. |
 | `ConfigError` au démarrage | YAML invalide : le message indique la clé en cause (le mode ne démarre pas avec des règles brisées). |
 | Base corrompue / réinitialiser | Supprimer `data/football.db` (les migrations recréent le schéma v3). |

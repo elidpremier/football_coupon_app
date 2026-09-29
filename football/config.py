@@ -118,6 +118,7 @@ class RotationConfig:
     """Paramètres du système de rotation automatique des compétitions."""
     enabled: bool
     pool: tuple[str, ...]       # toutes les compétitions candidates à la rotation
+    always_scan: tuple[str, ...]  # compétitions prioritaires à sonder chaque jour
     max_active: int             # nb max de compétitions simultanées par jour
     min_coverage_days: int      # réanalyse après N jours d'absence
     budget_safety_pct: float    # stoppe la rotation si budget utilisé > X%
@@ -349,6 +350,15 @@ def load_config(path: str | Path) -> AppConfig:
             "rotation.pool : compétitions déjà forcées dans competitions : "
             f"{sorted(rot_pool_overlap)} (retirer-les du pool ou de competitions)"
         )
+    always_scan_raw = rot.get("always_scan") or []
+    if not isinstance(always_scan_raw, list):
+        raise ConfigError("rotation.always_scan : une liste est attendue")
+    always_scan_unknown = set(always_scan_raw) - set(rot_pool_raw)
+    if always_scan_unknown:
+        raise ConfigError(
+            "rotation.always_scan : compétitions absentes de rotation.pool : "
+            f"{sorted(always_scan_unknown)}"
+        )
     rot_max_active = int(rot.get("max_active", 8))
     if not (1 <= rot_max_active <= 15):
         raise ConfigError("rotation.max_active doit être dans [1, 15]")
@@ -404,6 +414,7 @@ def load_config(path: str | Path) -> AppConfig:
         rotation=RotationConfig(
             enabled=rot_enabled,
             pool=tuple(rot_pool_raw),
+            always_scan=tuple(always_scan_raw),
             max_active=rot_max_active,
             min_coverage_days=rot_min_days,
             budget_safety_pct=rot_budget_pct,

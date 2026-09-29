@@ -2,50 +2,33 @@ project:
   timezone: Africa/Ouagadougou
   mode: pilot
   require_human_approval: true
-
 competitions:
-- premier_league
-- la_liga
-- serie_a
-
-fallback_competitions:
-- bundesliga
-- ligue_1
-- eredivisie
-- champions_league
-- europe_league
-
-# ============================================================
-# ROTATION AUTOMATIQUE DES COMPÉTITIONS
-# L'application sélectionne chaque jour les compétitions
-# à analyser selon les matchs imminents et le budget API.
-# ============================================================
+- uefa_nations_league
+- afcon
+- can_qualif
+fallback_competitions: []
 rotation:
-  enabled: true
+  enabled: false
   pool:
-    - primeira_liga
-    - championship
-    - conference_league
-    - ligue_2
-    - serie_b
-    - segunda_division
-    - brasileirao
-    - mls
-    - afcon
-    - can_qualif
-    - uefa_nations_league
-    - wc_qualif
-    - coppa_italia
-    - premier_league_cup
-  max_active: 8           # max de compétitions simultanées (forcées + rotation)
-  min_coverage_days: 2    # réanalyse une compétition si absente depuis >2 jours
-  budget_safety_pct: 80   # stoppe si budget API utilisé > 80%
-
+  - primeira_liga
+  - championship
+  - conference_league
+  - ligue_2
+  - serie_b
+  - segunda_division
+  - brasileirao
+  - mls
+  - wc_qualif
+  - coppa_italia
+  - premier_league_cup
+  always_scan: []
+  max_active: 8
+  min_coverage_days: 2
+  budget_safety_pct: 80
 markets:
 - match_winner
 - double_chance
 - over_under_2_5
-
 providers:
   primary: api_football
   secondary: football_data
@@ -55,7 +38,6 @@ providers:
   football_data_per_minute: 10
   http_timeout_seconds: 25
   max_retries: 3
-
 quality:
   eligible_threshold: 80.0
   watch_threshold: 65.0
@@ -69,7 +51,6 @@ quality:
     team_data_coverage: 0.2
     availability_confidence: 0.1
   contradiction_penalty: 25
-
 selection:
   weight_data_quality: 35
   weight_source_agreement: 20
@@ -78,7 +59,6 @@ selection:
   weight_explanation: 15
   explanation_score_ai_validated: 1.0
   explanation_score_template: 0.9
-
 coupons:
   pilot_max_selections: 2
   public_max_selections: 3
@@ -87,24 +67,20 @@ coupons:
   prohibit_same_team: true
   same_context_minutes: 90
   max_candidates_displayed: 3
-
 ai:
   mode: gemini_free
   require_valid_source_refs: true
-  enable_web_search: false
+  enable_web_search: true
   prompt_version: v1
-
 publishing:
   telegram_test_channel_env: TELEGRAM_TEST_CHANNEL_ID
   max_caption_chars: 1024
   max_png_bytes: 10000000
   responsible_gambling_notice: Estimation probabiliste — aucun résultat garanti. Jouez
     de manière responsable.
-
 probabilities:
   source: market
   model_version: market_normalized_v1
   poisson_max_goals: 10
-
 scheduler:
   refresh_window_minutes: 180
